@@ -48,9 +48,9 @@ app.post('/api/recognize-food', async (req, res) => {
     "c": число
 }`;
 
-        // Отправка запроса в Gemini 2.5-flash',
+        // Отправка запроса в Gemini 2.5-flash-lite',
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-2.5-flash-lite',
             contents: [
                 prompt,
                 { inlineData: { data: base64Data, mimeType: 'image/jpeg' } }
