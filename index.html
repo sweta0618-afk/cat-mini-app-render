@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Легкость с Котом - Полная версия</title>
+    
+    <!-- Иконки приложения -->
+    <link rel="icon" href="icon.png">
+    <link rel="apple-touch-icon" href="icon.png">
+    
+    <!-- Библиотеки: Telegram, Шрифты, Иконки, Tailwind, Chart.js -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Nunito', 'sans-serif'] },
+                    colors: {
+                        app: {
+                            bg: '#FDFBF7', peach: '#FFD4C4', peachDark: '#FFB39A',
+                            mint: '#D1F2EB', mintDark: '#A3E4D7', cream: '#FFF5E1',
+                            text: '#4A4A4A', textLight: '#8A8A8A', orange: '#F4A261',
+                        }
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(244, 162, 97, 0.1)',
+                        'card': '0 4px 15px -3px rgba(0, 0, 0, 0.05)',
+                        'inner-soft': 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.02)'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { background-color: #FDFBF7; -webkit-tap-highlight-color: transparent; user-select: none; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .task-checkbox:checked + div { background-color: #A3E4D7; border-color: #A3E4D7; }
+        .task-checkbox:checked + div i { opacity: 1; }
+
+        .fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .slide-up { animation: slideUp 0.3s ease-out forwards; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type="number"] { -moz-appearance: textfield; }
+
+        @keyframes breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.4); } }
+        .animate-breathe { animation: breathe 8s infinite ease-in-out; }
+
+        .toast-enter { transform: translate(-50%, 0); opacity: 1; }
+        .toast-exit { transform: translate(-50%, -20px); opacity: 0; }
+    </style>
+</head>
+<body class="text-app-text h-screen flex flex-col overflow-hidden relative">
+
+    <!-- Уведомления (Toast) -->
+    <div id="toast-container" class="absolute top-4 left-1/2 transform -translate-x-1/2 z-[100] w-max max-w-[90%] pointer-events-none transition-all duration-300 opacity-0 -translate-y-5">
+        <div class="bg-gray-800 bg-opacity-90 backdrop-blur-sm text-white px-5 py-3 rounded-full shadow-lg font-bold text-sm flex items-center gap-2">
+            <i class="ph-fill ph-info text-app-orange text-lg"></i>
+            <span id="toast-message">Уведомление</span>
+        </div>
+    </div>
+
+    <main id="app-content" class="flex-1 overflow-y-auto no-scrollbar pb-6 pt-2 px-4 relative">
+        
+        <!-- ГЛАВНЫЙ ЭКРАН -->
+        <section id="screen-home" class="fade-in block min-h-full py-4">
+            <!-- Header -->
+            <div class="flex items-center justify-between gap-4 mb-6 mt-2">
+                <div class="flex items-center gap-3 cursor-pointer" onclick="switchScreen('shop')">
+                    <div class="relative w-14 h-14">
+                        <img src="https://images.unsplash.com/photo-1573865526739-10659fec78a5?auto=format&fit=crop&q=80&w=150&h=150" alt="Матвей" class="w-full h-full rounded-full border-2 border-white shadow-sm object-cover">
+                        <div id="home-cat-accessory" class="absolute -top-2 -right-2 text-2xl drop-shadow-md hidden">👓</div>
+                    </div>
+                    <div>
+                        <p class="text-xs text-app-textLight">Ваш помощник</p>
+                        <p class="font-bold text-base text-gray-800">Матвей <i class="ph-fill ph-caret-right text-gray-400 text-xs"></i></p>
+                    </div>
+                </div>
+                <div class="bg-white px-3 py-1.5 rounded-full shadow-sm flex items-center gap-1 font-bold text-gray-700">
+                    <span id="ui-fish-balance-home">0</span> <i class="ph-fill ph-fish-simple text-blue-400 text-lg"></i>
+                </div>
+            </div>
+
+            <!-- Weight Card -->
+            <div class="bg-white rounded-3xl p-5 shadow-card mb-5 relative overflow-hidden">
+                <div class="flex justify-between items-center mb-2">
+                    <h2 class="font-bold text-gray-700">Мой вес</h2>
+                    <button onclick="openCalcModal()" class="text-app-orange text-sm font-bold bg-app-cream px-3 py-1 rounded-full shadow-sm hover:bg-app-peach transition active:scale-95 flex items-center gap-1"><i class="ph-bold ph-calculator"></i> КБЖУ</button>
+                </div>
+                <div class="flex items-end gap-2 mb-4 cursor-pointer w-max" onclick="updateWeightPrompt()" title="Нажмите, чтобы изменить">
+                    <span id="ui-weight" class="text-4xl font-extrabold text-gray-800">0.0</span>
+                    <span class="text-lg text-gray-500 mb-1">кг</span>
+                    <div class="w-8 h-8 bg-gray-50 rounded-full flex items-center justify-center ml-2 mb-1 shadow-sm"><i class="ph-bold ph-pencil-simple text-gray-400"></i></div>
+                </div>
+                <div class="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+                    <div id="ui-weight-bar" class="bg-app-mintDark h-full rounded-full transition-all duration-1000 ease-out w-[0%]"></div>
+                </div>
+                <p id="ui-weight-left" class="text-xs text-app-textLight mt-2 text-right">Осталось 0 кг</p>
+            </div>
+
+            <div class="bg-white rounded-3xl p-5 shadow-card mb-5">
+                <h3 class="font-bold text-gray-700 mb-3 text-sm flex items-center gap-2"><i class="ph-bold ph-chart-line-up text-app-orange"></i> История веса</h3>
+                <canvas id="weightChartCanvas" height="150"></canvas>
+            </div>
+
+            <!-- Widgets Row -->
+            <div class="flex gap-4 mb-5">
+                <div onclick="addWater()" class="bg-app-mint bg-opacity-30 rounded-3xl p-4 flex-1 shadow-inner-soft cursor-pointer hover:bg-opacity-50 transition transform active:scale-95">
+                    <div class="flex items-center gap-2 mb-3">
+                        <i class="ph-fill ph-drop text-teal-500 text-xl"></i>
+                        <h3 class="font-bold text-teal-800 text-sm">Вода</h3>
+                    </div>
+                    <p class="font-bold text-xl text-teal-900 mb-2"><span id="ui-water">0</span> / 8</p>
+                    <div id="ui-water-bars" class="flex gap-1"></div>
+                </div>
+                <div onclick="updateStepsPrompt()" class="bg-app-peach bg-opacity-30 rounded-3xl p-4 flex-1 shadow-inner-soft cursor-pointer hover:bg-opacity-50 transition transform active:scale-95">
+                    <div class="flex items-center gap-2 mb-3">
+                        <i class="ph-fill ph-sneaker text-orange-500 text-xl"></i>
+                        <h3 class="font-bold text-orange-800 text-sm">Шаги</h3>
+                    </div>
+                    <p id="ui-steps" class="font-bold text-xl text-orange-900 mb-2">0</p>
+                    <div class="w-full bg-orange-200 rounded-full h-1.5 overflow-hidden">
+                        <div id="ui-steps-bar" class="bg-orange-500 h-full rounded-full transition-all duration-1000 ease-out w-[0%]"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <button onclick="switchScreen('premium')" class="w-full bg-gradient-to-r from-yellow-100 to-orange-100 rounded-3xl p-4 flex items-center justify-between shadow-sm active:scale-95 transition">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm"><i class="ph-fill ph-crown text-yellow-500 text-xl"></i></div>
+                    <div class="text-left">
+                        <h3 class="font-bold text-yellow-900 text-sm">Легкость Premium</h3>
+                        <p class="text-xs text-yellow-700">Все возможности</p>
+                    </div>
+                </div>
+                <i class="ph-bold ph-caret-right text-yellow-600"></i>
+            </button>
+        </section>
+
+        <!-- ЭКРАН ПИТАНИЯ -->
+        <section id="screen-food" class="fade-in hidden min-h-full py-4">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-extrabold text-gray-800">Питание</h2>
+                <button onclick="openManualFoodModal()" class="bg-app-mintDark text-teal-900 px-4 py-1.5 rounded-full font-bold text-sm shadow-sm hover:bg-teal-300 transition active:scale-95 flex items-center gap-1">
+                    <i class="ph-bold ph-plus"></i> Вручную
+                </button>
+            </div>
+            
+            <!-- Круговой график КБЖУ -->
+            <div class="bg-white rounded-3xl p-6 shadow-card mb-6">
+                <div class="relative w-40 h-40 mx-auto">
+                    <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                        <path class="text-gray-100" stroke-width="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        <path id="ui-cals-circle" class="text-app-orange transition-all duration-1000 ease-out" stroke-dasharray="0, 100" stroke-width="3" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    </svg>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-2">
+                        <span id="ui-cals-eaten" class="text-3xl font-extrabold text-gray-800">0</span>
+                        <span class="text-sm text-gray-500">из <span id="ui-cals-goal">0</span> ккал</span>
+                    </div>
+                </div>
+
+                <!-- Макронутриенты -->
+                <div class="flex justify-between mt-6 px-2">
+                    <div class="text-center w-1/3">
+                        <p class="text-xs text-gray-400 mb-1">Белки</p>
+                        <p class="font-bold text-gray-700 text-sm"><span id="ui-p-eaten">0</span> / <span id="ui-p-goal">0</span>г</p>
+                        <div class="w-full max-w-[40px] h-1.5 bg-gray-100 rounded-full mt-1.5 mx-auto overflow-hidden"><div id="ui-p-bar" class="h-full bg-blue-400 rounded-full transition-all w-0"></div></div>
+                    </div>
+                    <div class="text-center w-1/3 border-l border-r border-gray-100">
+                        <p class="text-xs text-gray-400 mb-1">Жиры</p>
+                        <p class="font-bold text-gray-700 text-sm"><span id="ui-f-eaten">0</span> / <span id="ui-f-goal">0</span>г</p>
+                        <div class="w-full max-w-[40px] h-1.5 bg-gray-100 rounded-full mt-1.5 mx-auto overflow-hidden"><div id="ui-f-bar" class="h-full bg-yellow-400 rounded-full transition-all w-0"></div></div>
+                    </div>
+                    <div class="text-center w-1/3">
+                        <p class="text-xs text-gray-400 mb-1">Углеводы</p>
+                        <p class="font-bold text-gray-700 text-sm"><span id="ui-c-eaten">0</span> / <span id="ui-c-goal">0</span>г</p>
+                        <div class="w-full max-w-[40px] h-1.5 bg-gray-100 rounded-full mt-1.5 mx-auto overflow-hidden"><div id="ui-c-bar" class="h-full bg-green-400 rounded-full transition-all w-0"></div></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Добавление еды по фото (Real API Integration) -->
+            <label class="w-full mb-6 bg-gradient-to-r from-app-peachDark to-app-orange text-white rounded-3xl p-4 shadow-soft flex items-center justify-center gap-3 transform transition active:scale-95 cursor-pointer relative">
+                <i class="ph-fill ph-camera text-2xl"></i>
+                <span class="font-bold text-lg">Определить по фото</span>
+                <input type="file" accept="image/*" capture="camera" class="hidden" onchange="handleFoodPhoto(event)">
+            </label>
+
+            <div id="ui-food-list" class="space-y-3 pb-4"></div>
+        </section>
+
+        <!-- ЭКРАН ПЛАНА (ЗАДАНИЯ) -->
+        <section id="screen-tasks" class="fade-in hidden min-h-full py-4">
+            <h2 class="text-2xl font-extrabold mb-2 text-center text-gray-800">План на сегодня</h2>
+            <p class="text-center text-sm text-gray-500 mb-6">Отмечайте задания и получайте по 10 <i class="ph-fill ph-fish-simple text-blue-400"></i></p>
+            <div class="space-y-4" id="tasks-container"></div>
+        </section>
+
+        <!-- ЭКРАН ЙОГИ -->
+        <section id="screen-yoga" class="fade-in hidden min-h-full py-4">
+            <h2 class="text-2xl font-extrabold mb-6 text-center text-gray-800">Йога и Здоровье</h2>
+            
+            <!-- Добавление своего видео -->
+            <label class="w-full bg-white rounded-3xl p-4 shadow-sm border-2 border-dashed border-indigo-200 flex items-center justify-center gap-3 cursor-pointer mb-4 hover:bg-gray-50 transition active:scale-95">
+                <i class="ph-bold ph-upload-simple text-indigo-500 text-xl"></i>
+                <span class="font-bold text-indigo-700">Загрузить свое видео</span>
+                <input type="file" accept="video/*" class="hidden" onchange="handleCustomVideo(event)">
+            </label>
+
+            <!-- Плеер для своего видео (скрыт по умолчанию) -->
+            <div id="custom-video-container" class="hidden mb-6 bg-black rounded-3xl overflow-hidden shadow-card relative">
+                <button onclick="closeCustomVideo()" class="absolute top-2 right-2 w-8 h-8 bg-black bg-opacity-50 text-white rounded-full flex items-center justify-center z-10 active:scale-90"><i class="ph-bold ph-x"></i></button>
+                <video id="custom-video-player" controls class="w-full max-h-60 object-contain"></video>
+            </div>
+            
+            <div onclick="comingSoonToast()" class="bg-app-mint bg-opacity-30 rounded-3xl p-5 mb-4 shadow-sm flex items-center justify-between hover:bg-opacity-50 transition cursor-pointer active:scale-95">
+                <div>
+                    <h3 class="font-bold text-teal-900 mb-1">Здоровая спина</h3>
+                    <p class="text-xs text-teal-700">Мягкий комплекс (15 мин)</p>
+                </div>
+                <button class="w-10 h-10 bg-teal-500 text-white rounded-full flex items-center justify-center shadow-sm"><i class="ph-fill ph-play text-xl"></i></button>
+            </div>
+            
+            <div onclick="comingSoonToast()" class="bg-app-peach bg-opacity-30 rounded-3xl p-5 mb-4 shadow-sm flex items-center justify-between hover:bg-opacity-50 transition cursor-pointer active:scale-95">
+                <div>
+                    <h3 class="font-bold text-orange-900 mb-1">Утренняя разминка</h3>
+                    <p class="text-xs text-orange-700">Заряд бодрости (10 мин)</p>
+                </div>
+                <button class="w-10 h-10 bg-orange-400 text-white rounded-full flex items-center justify-center shadow-sm"><i class="ph-fill ph-play text-xl"></i></button>
+            </div>
+            
+            <div onclick="comingSoonToast()" class="bg-indigo-50 rounded-3xl p-5 mb-4 border border-indigo-100 flex items-center justify-between transition cursor-pointer active:scale-95">
+                <div>
+                    <h3 class="font-bold text-indigo-900 mb-1">Шея и суставы</h3>
+                    <p class="text-xs text-indigo-700">Снятие напряжения (20 мин)</p>
+                </div>
+                <button class="w-10 h-10 bg-indigo-400 text-white rounded-full flex items-center justify-center shadow-sm"><i class="ph-fill ph-play text-xl"></i></button>
+            </div>
+        </section>
+
+        <!-- ЭКРАН РЕЛАКС -->
+        <section id="screen-relax" class="fade-in hidden text-center h-full flex flex-col justify-center py-10">
+            <h2 class="text-2xl font-extrabold mb-8 text-gray-800">Релакс</h2>
+            <p class="text-sm text-gray-500 mb-12 px-4">Дышите в такт кругу, чтобы восстановить силы.</p>
+            <div class="relative w-48 h-48 mx-auto mb-16 flex items-center justify-center">
+                <div class="absolute w-40 h-40 bg-app-mint opacity-40 rounded-full animate-breathe"></div>
+                <div class="absolute w-32 h-32 bg-teal-300 opacity-60 rounded-full animate-breathe" style="animation-delay: 0.5s"></div>
+                <div class="relative w-24 h-24 bg-teal-500 rounded-full flex items-center justify-center shadow-lg z-10 text-white font-extrabold tracking-widest text-sm">ДЫШИ</div>
+            </div>
+        </section>
+
+        <!-- ЭКРАН МАГАЗИНА (КОТИК) -->
+        <section id="screen-shop" class="fade-in hidden min-h-full py-4 text-center">
+            <div class="flex items-center justify-between mb-6 px-2">
+                <h2 class="text-2xl font-extrabold text-gray-800">Магазин</h2>
+                <div class="bg-white px-3 py-1.5 rounded-full shadow-sm flex items-center gap-1 font-bold text-gray-700 border border-gray-100">
+                    <span id="ui-fish-balance-shop">0</span> <i class="ph-fill ph-fish-simple text-blue-400 text-lg"></i>
+                </div>
+            </div>
+            
+            <div class="relative w-32 h-32 mx-auto mb-8">
+                <img src="https://images.unsplash.com/photo-1573865526739-10659fec78a5?auto=format&fit=crop&q=80&w=300&h=300" class="w-full h-full rounded-full object-cover shadow-soft border-4 border-white">
+                <div id="shop-cat-accessory" class="absolute -top-3 -right-3 text-4xl drop-shadow-lg hidden transition-transform hover:scale-110">👓</div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 text-left px-2" id="shop-container"></div>
+        </section>
+
+        <!-- ЭКРАН PREMIUM -->
+        <section id="screen-premium" class="fade-in hidden min-h-full p-6 text-center flex flex-col items-center justify-center bg-gradient-to-b from-app-peachDark to-app-orange relative z-20 rounded-3xl mt-2 mb-4 mx-2">
+            <button onclick="switchScreen('home')" class="absolute top-4 left-4 w-10 h-10 bg-white bg-opacity-30 rounded-full flex items-center justify-center text-white active:scale-90 transition"><i class="ph-bold ph-arrow-left"></i></button>
+            <i class="ph-fill ph-star text-6xl text-yellow-300 mb-4 mt-8 drop-shadow-md"></i>
+            <h2 class="text-3xl font-extrabold text-white mb-2 drop-shadow-sm">Легкость Premium</h2>
+            <p class="text-white text-opacity-90 mb-8 px-2 font-semibold">Раскрой все возможности приложения без ограничений.</p>
+
+            <div class="bg-white rounded-3xl p-6 shadow-xl w-full text-left mb-8 text-gray-700">
+                <ul class="space-y-4">
+                    <li class="flex items-center gap-3"><i class="ph-bold ph-magic-wand text-app-orange text-xl"></i> <b>Безлимитный ИИ</b> для еды</li>
+                    <li class="flex items-center gap-3"><i class="ph-bold ph-flower-lotus text-app-mintDark text-xl"></i> <b>Все уроки</b> йоги 45+</li>
+                    <li class="flex items-center gap-3"><i class="ph-bold ph-calculator text-blue-400 text-xl"></i> <b>Глубокий анализ</b> КБЖУ</li>
+                    <li class="flex items-center gap-3"><i class="ph-bold ph-cat text-yellow-500 text-xl"></i> <b>Золотой статус</b> для Матвея</li>
+                </ul>
+            </div>
+
+            <button onclick="buyPremium()" class="w-full bg-gray-50 text-gray-500 font-extrabold text-lg py-4 rounded-3xl shadow-sm transform transition active:scale-95 flex justify-center items-center gap-2">
+                Premium скоро будет доступен
+            </button>
+            <p class="text-xs text-white opacity-80 mt-4">Официальная оплата через Telegram Stars</p>
+        </section>
+
+        <!-- Кастомный Prompt -->
+        <div id="custom-prompt" class="hidden absolute inset-0 z-[70] bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl p-6 w-full max-w-xs text-center slide-up">
+                <h3 id="prompt-title" class="font-bold text-gray-800 text-lg mb-4">Введите значение</h3>
+                <input id="prompt-input" type="number" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 mb-4 outline-none text-center font-bold text-gray-700 text-xl">
+                <div class="flex gap-2">
+                    <button onclick="closeCustomPrompt()" class="flex-1 bg-gray-100 text-gray-600 font-bold py-3 rounded-full active:scale-95 transition">Отмена</button>
+                    <button id="prompt-confirm-btn" class="flex-1 bg-app-orange text-white font-bold py-3 rounded-full active:scale-95 transition">ОК</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Добавление Еды (Ручное) -->
+        <div id="manual-food-modal" class="hidden absolute inset-0 z-[70] bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl p-6 w-full max-w-xs slide-up">
+                <h3 class="font-bold text-gray-800 text-lg mb-4 text-center">Что вы съели?</h3>
+                <input id="food-name-input" type="text" placeholder="Название блюда" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 mb-3 outline-none text-sm">
+                <input id="food-cals-input" type="number" placeholder="Примерные калории" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 mb-4 outline-none text-sm">
+                <div class="flex gap-2">
+                    <button onclick="closeManualFoodModal()" class="flex-1 bg-gray-100 text-gray-600 font-bold py-3 rounded-full active:scale-95 transition">Отмена</button>
+                    <button onclick="saveManualFood()" class="flex-1 bg-app-mintDark text-teal-900 font-bold py-3 rounded-full active:scale-95 transition">Добавить</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Добавление Еды (По Фото через API) -->
+        <div id="photo-food-modal" class="hidden absolute inset-0 z-[75] bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl p-6 w-full max-w-sm slide-up max-h-screen overflow-y-auto no-scrollbar relative">
+                
+                <!-- Загрузочный экран поверх модалки при запросе к Gemini -->
+                <div id="ai-loading" class="hidden absolute inset-0 z-[80] bg-white bg-opacity-90 backdrop-blur-sm flex flex-col items-center justify-center rounded-3xl">
+                    <div class="w-12 h-12 border-4 border-app-orange border-t-transparent rounded-full animate-spin mb-4"></div>
+                    <p class="font-bold text-gray-700 animate-pulse text-center">Gemini изучает фото...<br><span class="text-xs font-normal text-gray-500">Это займет пару секунд</span></p>
+                </div>
+
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-gray-800 text-lg">Данные о блюде</h3>
+                    <button onclick="closePhotoFoodModal()" class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 active:scale-90"><i class="ph-bold ph-x"></i></button>
+                </div>
+                
+                <img id="photo-food-preview" src="" alt="Ваше фото" class="w-full h-40 object-cover rounded-2xl mb-4 hidden border border-gray-200 shadow-sm">
+                
+                <input id="photo-food-name" type="text" placeholder="Название блюда" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 mb-3 outline-none font-bold text-gray-700">
+                
+                <div class="grid grid-cols-2 gap-2 mb-4">
+                    <div class="relative">
+                        <label class="absolute text-[10px] text-gray-400 top-1 left-3">Ккал</label>
+                        <input id="photo-food-cals" type="number" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 pt-5 pb-2 outline-none font-bold text-app-orange">
+                    </div>
+                    <div class="relative">
+                        <label class="absolute text-[10px] text-gray-400 top-1 left-3">Белки (г)</label>
+                        <input id="photo-food-p" type="number" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 pt-5 pb-2 outline-none font-bold text-blue-500">
+                    </div>
+                    <div class="relative">
+                        <label class="absolute text-[10px] text-gray-400 top-1 left-3">Жиры (г)</label>
+                        <input id="photo-food-f" type="number" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 pt-5 pb-2 outline-none font-bold text-yellow-500">
+                    </div>
+                    <div class="relative">
+                        <label class="absolute text-[10px] text-gray-400 top-1 left-3">Углев. (г)</label>
+                        <input id="photo-food-c" type="number" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 pt-5 pb-2 outline-none font-bold text-green-500">
+                    </div>
+                </div>
+                
+                <button onclick="savePhotoFood()" class="w-full bg-gradient-to-r from-app-mintDark to-teal-300 text-teal-900 font-extrabold py-4 rounded-full active:scale-95 transition flex justify-center items-center gap-2 shadow-sm">
+                    <i class="ph-bold ph-check-circle text-xl"></i> Сохранить в дневник
+                </button>
+            </div>
+        </div>
+
+        <!-- Калькулятор КБЖУ -->
+        <div id="calc-modal" class="hidden absolute inset-0 z-[60] bg-black bg-opacity-60 backdrop-blur-sm flex flex-col justify-end">
+            <div class="bg-white rounded-t-[40px] p-6 slide-up pb-10 shadow-2xl relative">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="font-bold text-2xl text-gray-800">Расчет КБЖУ</h3>
+                    <button onclick="closeCalcModal()" class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 active:scale-90"><i class="ph-bold ph-x"></i></button>
+                </div>
+                <form id="calc-form" onsubmit="calculateMacros(event)" class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 mb-1">Пол</label>
+                            <select id="calc-gender" class="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm outline-none">
+                                <option value="female">Женский</option>
+                                <option value="male">Мужской</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 mb-1">Возраст</label>
+                            <input type="number" id="calc-age" required min="18" max="100" class="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm outline-none">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 mb-1">Рост (см)</label>
+                            <input type="number" id="calc-height" required min="140" max="220" class="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 mb-1">Вес (кг)</label>
+                            <input type="number" id="calc-weight" required min="40" max="200" step="0.1" class="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm outline-none">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-app-mintDark text-teal-900 font-bold text-lg py-4 rounded-full active:scale-95 transition mt-2">Рассчитать норму</button>
+                </form>
+
+                <div id="calc-result" class="hidden mt-4 bg-app-cream rounded-3xl p-6 shadow-sm text-center border border-app-peach">
+                    <h4 class="font-bold text-gray-700 mb-2">Ваша норма для похудения:</h4>
+                    <p class="text-4xl font-extrabold text-app-orange mb-4"><span id="res-cals">0</span> <span class="text-sm font-normal text-gray-500">ккал</span></p>
+                    <div class="flex justify-between px-2 mb-6">
+                        <div><p class="text-xs text-gray-400">Белки</p><p class="font-bold text-gray-800 text-lg"><span id="res-p">0</span>г</p></div>
+                        <div><p class="text-xs text-gray-400">Жиры</p><p class="font-bold text-gray-800 text-lg"><span id="res-f">0</span>г</p></div>
+                        <div><p class="text-xs text-gray-400">Углеводы</p><p class="font-bold text-gray-800 text-lg"><span id="res-c">0</span>г</p></div>
+                    </div>
+                    <button onclick="applyCalcResult()" class="w-full bg-app-orange text-white font-bold text-lg py-3 rounded-full active:scale-95 transition">Применить норму</button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <nav class="bg-white border-t border-gray-100 h-20 px-2 flex justify-between items-center shrink-0 w-full relative z-40 pb-2">
+        <button onclick="switchScreen('home')" class="nav-btn w-[16%] flex flex-col items-center gap-1 text-app-orange transition" data-target="home">
+            <i class="ph-fill ph-house text-2xl -translate-y-1"></i><span class="text-[9px] font-bold">Главная</span>
+        </button>
+        <button onclick="switchScreen('food')" class="nav-btn w-[16%] flex flex-col items-center gap-1 text-gray-400 transition" data-target="food">
+            <i class="ph-fill ph-apple-logo text-2xl"></i><span class="text-[9px] font-bold">Еда</span>
+        </button>
+        <button onclick="switchScreen('tasks')" class="nav-btn w-[16%] flex flex-col items-center gap-1 text-gray-400 transition" data-target="tasks">
+            <i class="ph-fill ph-check-square-offset text-2xl"></i><span class="text-[9px] font-bold">План</span>
+        </button>
+        <button onclick="switchScreen('yoga')" class="nav-btn w-[16%] flex flex-col items-center gap-1 text-gray-400 transition" data-target="yoga">
+            <i class="ph-fill ph-person-simple-stretch text-2xl"></i><span class="text-[9px] font-bold">Йога</span>
+        </button>
+        <button onclick="switchScreen('relax')" class="nav-btn w-[16%] flex flex-col items-center gap-1 text-gray-400 transition" data-target="relax">
+            <i class="ph-fill ph-leaf text-2xl"></i><span class="text-[9px] font-bold">Релакс</span>
+        </button>
+        <button onclick="switchScreen('shop')" class="nav-btn w-[16%] flex flex-col items-center gap-1 text-gray-400 transition" data-target="shop">
+            <i class="ph-fill ph-cat text-2xl"></i><span class="text-[9px] font-bold">Кот</span>
+        </button>
+    </nav>
+
+    <script>
+        // Инициализация Telegram
+        const tg = window.Telegram ? window.Telegram.WebApp : null;
+        if (tg) { tg.expand(); tg.ready(); }
+
+        // График Chart.js
+        let weightChartInstance = null;
+
+        // Состояние Приложения
+        const defaultState = {
+            weight: 72.4, targetWeight: 65.0, water: 0, steps: 0, fishes: 0,
+            macros: { cals: 1600, p: 80, f: 60, c: 180 },
+            tasks: { water: false, steps: false, yoga: false, sleep: false },
+            foodLog: [], profile: { gender: 'female', age: 45, height: 165, activity: 1.2 },
+            inventory: { glasses: false, cap: false, bowtie: false, crown: false, premium: false },
+            activeAccessory: null, lastLogin: new Date().toLocaleDateString(),
+            weightHistory: [] // История веса
+        };
+
+        let appState = JSON.parse(localStorage.getItem('catDietApp_State_Final')) || defaultState;
+
+        // Фикс для старых пользователей без weightHistory
+        if (!appState.weightHistory) {
+            appState.weightHistory = [{ date: new Date().toLocaleDateString(), weight: appState.weight }];
+        }
+
+        const today = new Date().toLocaleDateString();
+        if (appState.lastLogin !== today) {
+            appState.water = 0; appState.steps = 0; appState.foodLog = [];
+            appState.tasks = { water: false, steps: false, yoga: false, sleep: false };
+            appState.lastLogin = today; saveState();
+        }
+
+        function saveState() {
+            localStorage.setItem('catDietApp_State_Final', JSON.stringify(appState));
+            updateUI();
+        }
+
+        // Уведомления (Toast)
+        let toastTimeout;
+        function showToast(message) {
+            const container = document.getElementById('toast-container');
+            document.getElementById('toast-message').innerText = message;
+            container.classList.remove('opacity-0', '-translate-y-5', 'toast-exit');
+            container.classList.add('toast-enter');
+            if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                container.classList.remove('toast-enter');
+                container.classList.add('toast-exit');
+                setTimeout(() => container.classList.add('opacity-0', '-translate-y-5'), 300);
+            }, 3000);
+        }
+
+        // Кастомный Prompt
+        let currentPromptCallback = null;
+        function showCustomPrompt(title, defaultValue, callback) {
+            document.getElementById('prompt-title').innerText = title;
+            document.getElementById('prompt-input').value = defaultValue || '';
+            currentPromptCallback = callback;
+            document.getElementById('custom-prompt').classList.remove('hidden');
+        }
+        function closeCustomPrompt() { document.getElementById('custom-prompt').classList.add('hidden'); }
+        document.getElementById('prompt-confirm-btn').onclick = () => {
+            const val = document.getElementById('prompt-input').value;
+            closeCustomPrompt();
+            if(currentPromptCallback) currentPromptCallback(val);
+        };
+
+        function addFishes(amount, reason) {
+            appState.fishes += amount; saveState(); showToast(`${reason}! +${amount} рыбок 🐟`);
+        }
+
+        // --- STREAMING_CHUNK:Обновление интерфейса ---
+        const shopItemsData = [
+            { id: 'glasses', name: 'Очки', icon: '👓', price: 50 },
+            { id: 'cap', name: 'Кепка', icon: '🧢', price: 80 },
+            { id: 'bowtie', name: 'Бабочка', icon: '🎀', price: 100 },
+            { id: 'crown', name: 'Корона', icon: '👑', price: 200 }
+        ];
+
+        const tasksData = [
+            { id: 'water', title: 'Вода (8 ст.)', icon: 'ph-drop', color: 'text-teal-400' },
+            { id: 'steps', title: 'Шаги (5000)', icon: 'ph-sneaker', color: 'text-orange-400' },
+            { id: 'yoga', title: 'Сделать разминку', icon: 'ph-person-simple-stretch', color: 'text-purple-400' },
+            { id: 'sleep', title: 'Сон до 23:00', icon: 'ph-moon-stars', color: 'text-indigo-400' }
+        ];
+
+        function updateUI() {
+            // Главная - Вес
+            document.getElementById('ui-weight').innerText = appState.weight.toFixed(1);
+            document.getElementById('ui-weight-left').innerText = `Осталось ${Math.max(0, appState.weight - appState.targetWeight).toFixed(1)} кг`;
+            document.getElementById('ui-weight-bar').style.width = `${Math.min(100, Math.max(0, ((80 - appState.weight) / (80 - appState.targetWeight)) * 100))}%`;
+            
+            // Вода и шаги
+            document.getElementById('ui-water').innerText = appState.water;
+            document.getElementById('ui-water-bars').innerHTML = Array(8).fill(0).map((_,i) => `<div class="w-full h-1.5 ${i < appState.water ? 'bg-teal-500' : 'bg-teal-200'} rounded-full"></div>`).join('');
+            document.getElementById('ui-steps').innerText = appState.steps.toLocaleString();
+            document.getElementById('ui-steps-bar').style.width = `${Math.min(100, (appState.steps / 5000) * 100)}%`;
+
+            // Рыбки
+            document.getElementById('ui-fish-balance-home').innerText = appState.fishes;
+            document.getElementById('ui-fish-balance-shop').innerText = appState.fishes;
+
+            // Котик
+            const homeCat = document.getElementById('home-cat-accessory');
+            const shopCat = document.getElementById('shop-cat-accessory');
+            if (appState.activeAccessory) {
+                const item = shopItemsData.find(i => i.id === appState.activeAccessory);
+                if (item) {
+                    homeCat.innerText = item.icon; homeCat.classList.remove('hidden');
+                    shopCat.innerText = item.icon; shopCat.classList.remove('hidden');
+                }
+            } else {
+                homeCat.classList.add('hidden'); shopCat.classList.add('hidden');
+            }
+
+            // График веса
+            renderChart();
+
+            // Питание
+            let eCals=0, eP=0, eF=0, eC=0;
+            const list = document.getElementById('ui-food-list'); list.innerHTML = '';
+            if (appState.foodLog.length === 0) list.innerHTML = `<p class="text-center text-gray-400 text-sm mt-8">Дневник пуст</p>`;
+            appState.foodLog.forEach(f => {
+                eCals+=f.cals; eP+=f.p; eF+=f.f; eC+=f.c;
+                list.innerHTML += `<div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex justify-between items-center mb-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-gray-500"><i class="ph-fill ph-fork-knife text-xl"></i></div>
+                        <div><h3 class="font-bold text-gray-800">${f.name}</h3><p class="text-[10px] text-gray-400">Б:${f.p} Ж:${f.f} У:${f.c}</p></div>
+                    </div>
+                    <div class="flex items-center gap-3"><p class="font-bold text-gray-700">${f.cals} <span class="text-xs font-normal text-gray-400">ккал</span></p>
+                    <button onclick="deleteFood(${f.id})" class="text-red-300 hover:text-red-500"><i class="ph-bold ph-trash"></i></button></div>
+                </div>`;
+            });
+
+            document.getElementById('ui-cals-goal').innerText = appState.macros.cals;
+            document.getElementById('ui-p-goal').innerText = appState.macros.p;
+            document.getElementById('ui-f-goal').innerText = appState.macros.f;
+            document.getElementById('ui-c-goal').innerText = appState.macros.c;
+            
+            document.getElementById('ui-cals-eaten').innerText = eCals;
+            document.getElementById('ui-p-eaten').innerText = eP;
+            document.getElementById('ui-f-eaten').innerText = eF;
+            document.getElementById('ui-c-eaten').innerText = eC;
+
+            const circle = document.getElementById('ui-cals-circle');
+            let calsP = Math.min(100, (eCals / appState.macros.cals) * 100);
+            circle.style.strokeDasharray = `${calsP}, 100`;
+            circle.classList.toggle('text-red-400', calsP >= 100);
+            circle.classList.toggle('text-app-orange', calsP < 100);
+
+            document.getElementById('ui-p-bar').style.width = `${Math.min(100, (eP/appState.macros.p)*100)}%`;
+            document.getElementById('ui-f-bar').style.width = `${Math.min(100, (eF/appState.macros.f)*100)}%`;
+            document.getElementById('ui-c-bar').style.width = `${Math.min(100, (eC/appState.macros.c)*100)}%`;
+
+            // Задания
+            const tc = document.getElementById('tasks-container'); tc.innerHTML = '';
+            tasksData.forEach(t => {
+                const checked = appState.tasks[t.id];
+                tc.innerHTML += `<label class="bg-white rounded-3xl p-4 shadow-sm border border-gray-100 flex items-center gap-4 cursor-pointer">
+                    <input type="checkbox" class="task-checkbox hidden" onchange="toggleTask('${t.id}', this)" ${checked ? 'checked' : ''}>
+                    <div class="w-8 h-8 rounded-full border-2 border-gray-300 flex items-center justify-center transition-colors"><i class="ph-bold ph-check text-white opacity-0 transition-opacity"></i></div>
+                    <div class="flex-1"><h3 class="font-bold text-gray-800">${t.title}</h3></div>
+                    <i class="ph-fill ${t.icon} ${t.color} text-3xl"></i>
+                </label>`;
+            });
+
+            // Магазин
+            const sc = document.getElementById('shop-container'); sc.innerHTML = '';
+            shopItemsData.forEach(item => {
+                const isOwned = appState.inventory[item.id];
+                const isActive = appState.activeAccessory === item.id;
+                let btnHtml = isOwned 
+                    ? `<button onclick="equipItem('${item.id}')" class="${isActive ? 'bg-app-orange text-white' : 'bg-gray-100 text-gray-600'} font-bold text-xs py-2 px-4 rounded-full w-full mt-2">${isActive ? 'Надето' : 'Надеть'}</button>`
+                    : `<button onclick="buyItem('${item.id}', ${item.price})" class="bg-app-cream text-app-orange font-bold text-xs py-2 px-4 rounded-full w-full mt-2 active:scale-95">Купить ${item.price} 🐟</button>`;
+                
+                sc.innerHTML += `<div class="bg-white rounded-3xl p-4 shadow-sm border border-gray-100 text-center flex flex-col items-center">
+                    <div class="text-5xl mb-2 mt-2 drop-shadow-sm">${item.icon}</div>
+                    <h3 class="font-bold text-sm text-gray-700">${item.name}</h3>
+                    ${btnHtml}
+                </div>`;
+            });
+        }
+
+        function renderChart() {
+            const ctx = document.getElementById('weightChartCanvas').getContext('2d');
+            
+            // Защита от слишком длинной истории (берем последние 7 записей)
+            const history = appState.weightHistory.slice(-7);
+            const labels = history.map(h => h.date.substring(0, 5)); // DD.MM
+            const data = history.map(h => h.weight);
+
+            if (weightChartInstance) {
+                weightChartInstance.destroy();
+            }
+
+            weightChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Вес (кг)',
+                        data: data,
+                        borderColor: '#F4A261', // app-orange
+                        backgroundColor: 'rgba(244, 162, 97, 0.2)',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#F4A261',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { 
+                            beginAtZero: false, 
+                            suggestedMin: Math.min(...data) - 2,
+                            suggestedMax: Math.max(...data) + 2,
+                            grid: { color: '#F3F4F6' } 
+                        },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        // --- STREAMING_CHUNK:Обработчики событий ---
+        // Главная - Изменение веса с историей
+        function updateWeightPrompt() {
+            showCustomPrompt("Ваш текущий вес (кг)", appState.weight, (val) => {
+                if (val && !isNaN(val)) { 
+                    appState.weight = parseFloat(val); 
+                    
+                    // Сохраняем в историю
+                    const todayStr = new Date().toLocaleDateString();
+                    const lastEntry = appState.weightHistory[appState.weightHistory.length - 1];
+                    
+                    if (lastEntry && lastEntry.date === todayStr) {
+                        lastEntry.weight = appState.weight; // обновляем за сегодня
+                    } else {
+                        appState.weightHistory.push({ date: todayStr, weight: appState.weight });
+                    }
+
+                    saveState(); showToast("Вес обновлен!"); 
+                }
+            });
+        }
+
+        function updateStepsPrompt() {
+            showCustomPrompt("Пройдено шагов", appState.steps, (val) => {
+                if (val && !isNaN(val)) {
+                    appState.steps = parseInt(val);
+                    if (appState.steps >= 5000 && !appState.tasks.steps) { appState.tasks.steps = true; addFishes(10, 'План шагов выполнен'); }
+                    saveState(); showToast("Шаги сохранены!");
+                }
+            });
+        }
+
+        function addWater() {
+            if (appState.water < 8) {
+                appState.water++;
+                if (appState.water >= 8 && !appState.tasks.water) { appState.tasks.water = true; addFishes(10, 'Вода выпита'); }
+                saveState();
+            }
+        }
+
+        function toggleTask(id, cb) {
+            appState.tasks[id] = cb.checked;
+            if(cb.checked) addFishes(10, 'Задание выполнено');
+            saveState();
+        }
+
+        // Питание - Вручную
+        function openManualFoodModal() {
+            document.getElementById('food-name-input').value = '';
+            document.getElementById('food-cals-input').value = '';
+            document.getElementById('manual-food-modal').classList.remove('hidden');
+        }
+        function closeManualFoodModal() { document.getElementById('manual-food-modal').classList.add('hidden'); }
+        
+        function saveManualFood() {
+            let n = document.getElementById('food-name-input').value;
+            let c = document.getElementById('food-cals-input').value;
+            if(n && c && !isNaN(c)) {
+                appState.foodLog.push({ id: Date.now(), name: n, cals: +c, p: Math.round(c*0.05), f: Math.round(c*0.03), c: Math.round(c*0.1) });
+                saveState(); closeManualFoodModal(); showToast("Добавлено в дневник!");
+            }
+        }
+        function deleteFood(id) { appState.foodLog = appState.foodLog.filter(f=>f.id!==id); saveState(); }
+
+        // --- STREAMING_CHUNK:Интеграция с Gemini Vision API ---
+        async function handleFoodPhoto(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Показываем превью
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const base64Data = e.target.result;
+                const preview = document.getElementById('photo-food-preview');
+                preview.src = base64Data;
+                preview.classList.remove('hidden');
+                
+                // Открываем модалку и показываем спиннер
+                document.getElementById('photo-food-modal').classList.remove('hidden');
+                document.getElementById('ai-loading').classList.remove('hidden');
+                
+                // Очищаем старые поля
+                document.getElementById('photo-food-name').value = '';
+                document.getElementById('photo-food-cals').value = '';
+                document.getElementById('photo-food-p').value = '';
+                document.getElementById('photo-food-f').value = '';
+                document.getElementById('photo-food-c').value = '';
+
+                try {
+                    // Отправляем запрос на наш Node.js бэкенд (Render)
+                    // Важно: в будущем укажите тут точный адрес сервера, если фронт и бэк на разных доменах
+                    // Сейчас предполагается, что они на одном.
+                    const response = await fetch('/api/recognize-food', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ imageBase64: base64Data })
+                    });
+
+                    if (!response.ok) throw new Error('Ошибка сервера');
+                    
+                    const data = await response.json();
+
+                    // Заполняем поля ответом Gemini
+                    document.getElementById('photo-food-name').value = data.name || 'Неизвестное блюдо';
+                    document.getElementById('photo-food-cals').value = data.cals || 0;
+                    document.getElementById('photo-food-p').value = data.p || 0;
+                    document.getElementById('photo-food-f').value = data.f || 0;
+                    document.getElementById('photo-food-c').value = data.c || 0;
+
+                    if(tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+
+                } catch (error) {
+                    console.error(error);
+                    showToast("Не удалось определить фото. Введите данные вручную.");
+                } finally {
+                    // Скрываем спиннер
+                    document.getElementById('ai-loading').classList.add('hidden');
+                }
+            };
+            reader.readAsDataURL(file);
+            event.target.value = ''; // Сброс
+        }
+
+        function closePhotoFoodModal() {
+            document.getElementById('photo-food-modal').classList.add('hidden');
+            document.getElementById('ai-loading').classList.add('hidden');
+        }
+
+        function savePhotoFood() {
+            let n = document.getElementById('photo-food-name').value;
+            let cals = document.getElementById('photo-food-cals').value;
+            let p = document.getElementById('photo-food-p').value || 0;
+            let f = document.getElementById('photo-food-f').value || 0;
+            let c = document.getElementById('photo-food-c').value || 0;
+
+            if(n && cals && !isNaN(cals)) {
+                appState.foodLog.push({ id: Date.now(), name: n, cals: +cals, p: +p, f: +f, c: +c });
+                saveState(); closePhotoFoodModal(); showToast("Добавлено в дневник!");
+            } else {
+                showToast("Укажите название и калории!");
+            }
+        }
+
+        // --- STREAMING_CHUNK:Остальная логика (Калькулятор, Йога, Магазин) ---
+        function openCalcModal() { 
+            document.getElementById('calc-form').classList.remove('hidden');
+            document.getElementById('calc-result').classList.add('hidden');
+            
+            document.getElementById('calc-gender').value = appState.profile.gender;
+            document.getElementById('calc-age').value = appState.profile.age;
+            document.getElementById('calc-height').value = appState.profile.height;
+            document.getElementById('calc-weight').value = appState.weight;
+            
+            document.getElementById('calc-modal').classList.remove('hidden'); 
+        }
+        function closeCalcModal() { document.getElementById('calc-modal').classList.add('hidden'); }
+        
+        let tempMacros = null;
+        function calculateMacros(e) {
+            e.preventDefault();
+            let w = parseFloat(document.getElementById('calc-weight').value);
+            let h = parseFloat(document.getElementById('calc-height').value);
+            let a = parseInt(document.getElementById('calc-age').value);
+            let g = document.getElementById('calc-gender').value;
+
+            let bmr = (10 * w) + (6.25 * h) - (5 * a);
+            bmr += (g === 'male') ? 5 : -161;
+            let tdee = bmr * 1.2; 
+            let targetCals = Math.round(tdee * 0.85); 
+
+            tempMacros = { cals: targetCals, p: Math.round((targetCals*0.3)/4), f: Math.round((targetCals*0.3)/9), c: Math.round((targetCals*0.4)/4) };
+            
+            document.getElementById('res-cals').innerText = tempMacros.cals;
+            document.getElementById('res-p').innerText = tempMacros.p;
+            document.getElementById('res-f').innerText = tempMacros.f;
+            document.getElementById('res-c').innerText = tempMacros.c;
+
+            document.getElementById('calc-form').classList.add('hidden');
+            document.getElementById('calc-result').classList.remove('hidden');
+        }
+        function applyCalcResult() {
+            if (tempMacros) {
+                appState.macros = tempMacros; 
+                appState.weight = parseFloat(document.getElementById('calc-weight').value);
+                appState.profile.gender = document.getElementById('calc-gender').value;
+                appState.profile.age = parseInt(document.getElementById('calc-age').value);
+                appState.profile.height = parseInt(document.getElementById('calc-height').value);
+                
+                saveState(); closeCalcModal(); showToast(`Норма сохранена: ${tempMacros.cals} ккал`);
+            }
+        }
+
+        // Магазин
+        function buyItem(id, price) {
+            if(appState.fishes >= price) {
+                appState.fishes -= price; appState.inventory[id] = true; appState.activeAccessory = id;
+                saveState(); showToast("Куплено и надето!");
+            } else showToast(`Не хватает ${price - appState.fishes} 🐟`);
+        }
+        function equipItem(id) { appState.activeAccessory = id; saveState(); showToast("Надето!"); }
+
+        // Йога
+        function comingSoonToast() {
+            showToast("Видео-урок скоро будет добавлен");
+        }
+
+        function handleCustomVideo(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const videoURL = URL.createObjectURL(file);
+                const player = document.getElementById('custom-video-player');
+                const container = document.getElementById('custom-video-container');
+                
+                player.src = videoURL;
+                container.classList.remove('hidden');
+                player.play();
+                showToast("Видео загружено!");
+            }
+            event.target.value = ''; 
+        }
+
+        function closeCustomVideo() {
+            const player = document.getElementById('custom-video-player');
+            const container = document.getElementById('custom-video-container');
+            
+            player.pause();
+            player.src = '';
+            container.classList.add('hidden');
+        }
+
+        // Premium (Telegram Stars)
+        function buyPremium() {
+            showToast("Платная подписка будет подключена позже через Telegram Stars");
+        }
+
+        // Навигация
+        function switchScreen(target) {
+            ['home', 'food', 'tasks', 'yoga', 'relax', 'shop', 'premium'].forEach(s => {
+                const el = document.getElementById(`screen-${s}`);
+                if(el) el.classList.add('hidden');
+            });
+            const targetEl = document.getElementById(`screen-${target}`);
+            if(targetEl) targetEl.classList.remove('hidden');
+
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                const icon = btn.querySelector('i');
+                if (btn.getAttribute('data-target') === target) {
+                    btn.classList.replace('text-gray-400', 'text-app-orange');
+                    if(icon) icon.classList.add('-translate-y-1');
+                } else {
+                    btn.classList.replace('text-app-orange', 'text-gray-400');
+                    if(icon) icon.classList.remove('-translate-y-1');
+                }
+            });
+        }
+
+        window.onload = updateUI;
+    </script>
+</body>
+</html>
