@@ -58,7 +58,7 @@ app.post('/api/recognize-food', async (req, res) => {
         });
 
         // Очистка ответа от возможных markdown-тегов (```json ... ```)
-        const text = response.text().replace(/```json/g, '').replace(/```/g, '').trim();
+        const text = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
         const data = JSON.parse(text);
 
         res.json(data);
