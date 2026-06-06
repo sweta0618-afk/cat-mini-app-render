@@ -70,7 +70,7 @@ app.post('/api/recognize-food', async (req, res) => {
 // --- ЧАТ С МАТВЕЕМ (GEMINI API) ---
 app.post('/api/chat', async (req, res) => {
     try {
-        const { message } = req.body;
+       const { message, memory } = req.body;
 
         if (!message) {
             return res.status(400).json({ success: false, error: 'Нет сообщения' });
@@ -98,7 +98,8 @@ app.post('/api/chat', async (req, res) => {
 Если сорвался с питания — успокой.
 Если спрашивает про йогу — дай мягкий совет.
 Ты не врач и не ставишь диагнозы.
-
+Память о пользователе:
+${memory || 'Пока ничего не известно.'}
 Сообщение пользователя: ${message}`;
 
         const response = await ai.models.generateContent({
