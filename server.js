@@ -67,7 +67,51 @@ app.post('/api/recognize-food', async (req, res) => {
         res.status(500).json({ error: 'Не удалось распознать еду' });
     }
 });
+// --- ЧАТ С МАТВЕЕМ (GEMINI API) ---
+app.post('/api/chat', async (req, res) => {
+    try {
+        const { message } = req.body;
 
+        if (!message) {
+            return res.status(400).json({ success: false, error: 'Нет сообщения' });
+        }
+
+        const systemPrompt = `Ты — рыжий кот Матвей, виртуальный помощник приложения «Легкость с Котом».
+
+Твоя задача:
+- помогать снижать вес без жестких диет;
+- поддерживать мотивацию;
+- объяснять простыми словами вопросы питания;
+- советовать пить воду;
+- напоминать о движении;
+- поддерживать занятия йогой.
+
+Стиль общения:
+- добрый;
+- теплый;
+- с чувством юмора;
+- иногда используй слова «мур», «лапки», «хвост трубой»;
+- не осуждай пользователя;
+- отвечай коротко, до 4 предложений.
+
+Если пользователь расстроен — поддержи.
+Если сорвался с питания — успокой.
+Если спрашивает про йогу — дай мягкий совет.
+Ты не врач и не ставишь диагнозы.
+
+Сообщение пользователя: ${message}`;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: systemPrompt
+        });
+
+        res.json({ success: true, text: response.text });
+    } catch (error) {
+        console.error('Ошибка чата:', error);
+        res.status(500).json({ success: false, error: 'Мяу... Связь прервалась.' });
+    }
+});
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Сервер запущен на порту ${PORT}`);
