@@ -983,7 +983,7 @@ function closeChat() {
     const input = document.getElementById('chat-input');
     const messagesDiv = document.getElementById('chat-messages');
     const message = input.value.trim();
-
+let memory = localStorage.getItem('matveyMemory') || '';
     if (!message) return;
 
     messagesDiv.innerHTML += `
@@ -1011,13 +1011,21 @@ function closeChat() {
         const response = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message })
+           body: JSON.stringify({
+    message,
+    memory
+})
         });
 
         const data = await response.json();
 
         document.getElementById(typingId).remove();
+const lowerMessage = message.toLowerCase();
 
+if (lowerMessage.includes('меня зовут')) {
+    const name = message.split(' ').slice(-1)[0];
+    localStorage.setItem('matveyMemory', `Имя пользователя: ${name}`);
+}
         if (data.success) {
             messagesDiv.innerHTML += `
                 <div class="bg-white p-3 rounded-2xl shadow-sm text-sm text-gray-700 max-w-[85%] mb-3">
