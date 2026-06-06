@@ -719,26 +719,29 @@
 
         // --- STREAMING_CHUNK:Обработчики событий ---
         // Главная - Изменение веса с историей
-        function updateWeightPrompt() {
-            showCustomPrompt("Ваш текущий вес (кг)", appState.weight, (val) => {
-                if (val && !isNaN(val)) { 
-                    appState.weight = parseFloat(val); 
-                    
-                    // Сохраняем в историю
-                    const todayStr = new Date().toLocaleDateString();
-                    const lastEntry = appState.weightHistory[appState.weightHistory.length - 1];
-                    
-                    if (lastEntry && lastEntry.date === todayStr) {
-                        lastEntry.weight = appState.weight; // обновляем за сегодня
-                    } else {
-                        appState.weightHistory.push({ date: todayStr, weight: appState.weight });
-                    }
+       function updateWeightPrompt() {
+    showCustomPrompt("Ваш текущий вес (кг)", appState.weight, (val) => {
+        if (val && !isNaN(val)) { 
+            appState.weight = parseFloat(val); 
+            
+            const todayStr = new Date().toLocaleDateString();
+            const lastEntry = appState.weightHistory[appState.weightHistory.length - 1];
+            
+            if (lastEntry && lastEntry.date === todayStr) {
+                lastEntry.weight = appState.weight;
+            } else {
+                appState.weightHistory.push({ date: todayStr, weight: appState.weight });
+            }
 
-                    saveState(); showToast("Вес обновлен!"); 
-                }
-            });
+            let memory = localStorage.getItem('matveyMemory') || '';
+            memory += `\nТекущий вес пользователя: ${appState.weight} кг`;
+            localStorage.setItem('matveyMemory', memory);
+
+            saveState(); 
+            showToast("Вес обновлен! Матвей запомнил 🐱"); 
         }
-
+    });
+}
         function updateStepsPrompt() {
             showCustomPrompt("Пройдено шагов", appState.steps, (val) => {
                 if (val && !isNaN(val)) {
