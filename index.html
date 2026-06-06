@@ -1026,8 +1026,10 @@ let memory = localStorage.getItem('matveyMemory') || '';
 const lowerMessage = message.toLowerCase();
 let currentMemory = localStorage.getItem('matveyMemory') || '';
 
-if (lowerMessage.includes('меня зовут')) {
-    const name = message.split(' ').slice(-1)[0];
+const nameMatch = message.match(/меня зовут\s+([А-Яа-яA-Za-zЁё]+)/i);
+
+if (nameMatch) {
+    const name = nameMatch[1];
     currentMemory += `\nИмя пользователя: ${name}`;
     localStorage.setItem('matveyMemory', currentMemory);
 }
