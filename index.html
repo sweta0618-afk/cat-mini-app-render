@@ -1021,10 +1021,20 @@ let memory = localStorage.getItem('matveyMemory') || '';
 
         document.getElementById(typingId).remove();
 const lowerMessage = message.toLowerCase();
+let currentMemory = localStorage.getItem('matveyMemory') || '';
 
 if (lowerMessage.includes('меня зовут')) {
     const name = message.split(' ').slice(-1)[0];
-    localStorage.setItem('matveyMemory', `Имя пользователя: ${name}`);
+    currentMemory += `\nИмя пользователя: ${name}`;
+    localStorage.setItem('matveyMemory', currentMemory);
+}
+
+const goalMatch = message.match(/цель\s*(\d+[\.,]?\d*)\s*кг/i);
+
+if (goalMatch) {
+    const goalWeight = goalMatch[1].replace(',', '.');
+    currentMemory += `\nЦель по весу: ${goalWeight} кг`;
+    localStorage.setItem('matveyMemory', currentMemory);
 }
         if (data.success) {
             messagesDiv.innerHTML += `
