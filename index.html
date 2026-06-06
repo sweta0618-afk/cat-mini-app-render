@@ -979,6 +979,65 @@ function openChat() {
 
 function closeChat() {
     document.getElementById('chat-modal').classList.add('hidden');
+}async function sendChatMessage() {
+    const input = document.getElementById('chat-input');
+    const messagesDiv = document.getElementById('chat-messages');
+    const message = input.value.trim();
+
+    if (!message) return;
+
+    messagesDiv.innerHTML += `
+        <div class="flex justify-end mb-3">
+            <div class="bg-app-mint p-3 rounded-2xl text-sm text-teal-900 max-w-[85%]">
+                ${message}
+            </div>
+        </div>
+    `;
+
+    input.value = '';
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+    const typingId = 'typing-' + Date.now();
+
+    messagesDiv.innerHTML += `
+        <div id="${typingId}" class="bg-white p-3 rounded-2xl shadow-sm text-sm text-gray-400 max-w-[85%] mb-3">
+            Матвей печатает... 🐾
+        </div>
+    `;
+
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+    try {
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message })
+        });
+
+        const data = await response.json();
+
+        document.getElementById(typingId).remove();
+
+        if (data.success) {
+            messagesDiv.innerHTML += `
+                <div class="bg-white p-3 rounded-2xl shadow-sm text-sm text-gray-700 max-w-[85%] mb-3">
+                    ${data.text}
+                </div>
+            `;
+        } else {
+            throw new Error('Chat error');
+        }
+    } catch (error) {
+        document.getElementById(typingId)?.remove();
+
+        messagesDiv.innerHTML += `
+            <div class="bg-red-50 p-3 rounded-2xl text-sm text-red-500 max-w-[85%] mb-3">
+                Мяу... связь прервалась. Попробуйте еще раз 🐱
+            </div>
+        `;
+    }
+
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
         window.onload = updateUI;
     </script>
